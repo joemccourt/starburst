@@ -35,8 +35,9 @@ const mapMax = (map) => {
 };
 
 class SetsViz {
-    constructor(ctx, w, h) {
+    constructor(ctx, ctxH, w, h) {
         this._ctx = ctx;
+        this._ctxH = ctxH;
         this.setSize(w, h);
     }
 
@@ -78,6 +79,9 @@ class SetsViz {
         let forrest = {
             value: new Set(),
             depth: 0,
+            n: sets.size,
+            xStart: 0,
+            xWidth: 1,
             isLeaf: false,
             children: []
         };
@@ -131,6 +135,8 @@ class SetsViz {
             let childTrie = {
                 value: new Set([mostCommonElement]),
                 p: parent,
+                n: childrenSets.size,
+                xWidth: childrenSets.size / parent.n * parent.xWidth,
                 isLeaf,
                 children: []
             };
@@ -193,6 +199,7 @@ class SetsViz {
                 let y = yPadd + (this._h - 2*yPadd) * (node.n.depth) / (this._maxDepth || 1);
                 node.n.y = y;
                 node.n.x = x;
+                node.n.fractionStart = node.n.col / k;
                 for (let i = 0; i < node.n.children.length; i++) {
                     let c = node.n.children[i];
                     q.push({
@@ -209,6 +216,38 @@ class SetsViz {
         while (q.length) {
             let node = q.shift();
             if (Math.pow(node.x-x,2) + Math.pow(node.y-y,2) < r*r) {
+                return node;
+            }
+            for (let i = 0; i < node.children.length; i++) {
+                let c = node.children[i];
+                q.push(c);
+            }
+        }
+    }
+
+    arcAt(x, y) {
+        let q = [this._forrest];
+        let r = this._arcRadius;
+        let x0 = (this._w - 1) / 2;
+        let y0 = (this._h - 1) / 2;
+        let dx = x - x0;
+        let dy = y - y0;
+        let dr = Math.sqrt(dx*dx + dy*dy);
+        let depth = Math.floor(dr / r);
+
+        let angle = Math.atan2(-dy, dx);
+        let fraction = angle / (Math.PI * 2);
+        if (fraction < 0) {
+            fraction += 1;
+        }
+
+        if (depth === 0) {
+            return q[0];
+        }
+
+        while (q.length) {
+            let node = q.shift();
+            if (node.depth === depth && fraction >= node.xStart && fraction <= (node.xStart + node.xWidth)) {
                 return node;
             }
             for (let i = 0; i < node.children.length; i++) {
@@ -259,7 +298,6 @@ class SetsViz {
                 ctx.stroke();
             }
 
-
             ctx.beginPath();
             ctx.arc(x, y, r, 0, 2 * Math.PI, true);
             ctx.stroke();
@@ -270,21 +308,139 @@ class SetsViz {
             }
             ctx.fill();
 
-
             ctx.fillStyle = 'black';
             ctx.fillText(setDisplay(node.value, 2), x, y);
 
         }
     }
+
+    drawArc(n, isHighlight) {
+
+        let depth = n.depth;
+        let fractionStart = n.xStart;
+        let fractionWidth = n.xWidth;
+        let color = this.genColor(n.value.size);
+
+        if (isHighlight) {
+            this._ctxH.clearRect(0, 0, this._w, this._h);
+            color = 'deeppink';
+        }
+
+        if (fractionWidth <= 0) { return; }
+        let r = Math.min(this._w, this._h) / 2 / (this._maxDepth + 2);
+        this._arcRadius = r;
+        let r1 = r * depth;
+        let r2 = r1 + r;
+        let startAngle = (1-fractionStart) * Math.PI * 2;
+        let endAngle = (startAngle - fractionWidth*Math.PI*2) % (2*Math.PI);
+        if (fractionWidth === 1) {
+            startAngle = 0;
+            endAngle = 2 * Math.PI;
+        }
+        let caStart = Math.cos(startAngle);
+        let saStart = Math.sin(startAngle);
+        let caEnd = Math.cos(endAngle);
+        let saEnd = Math.sin(endAngle);
+
+        // Center (x0, y0)
+        let x0 = (this._w - 1) / 2;
+        let y0 = (this._h - 1) / 2;
+        
+        // Inner arc (x1, y1), (x2, y2)
+        let x1 = x0 + r1 * caStart;
+        let y1 = y0 + r1 * saStart;
+        let x2 = x0 + r1 * caEnd;
+        let y2 = y0 + r1 * saEnd;
+
+        // Outer arc (x3, y3), (x4, y4)
+        let x3 = x0 + r2 * caEnd;
+        let y3 = y0 + r2 * saEnd;
+        let x4 = x0 + r2 * caStart;
+        let y4 = y0 + r2 * saStart;
+
+        let ctx = isHighlight ? this._ctxH : this._ctx;
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'black';
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.arc(x0, y0, r1, startAngle, endAngle, true);
+        ctx.lineTo(x3, y3);
+        ctx.arc(x0, y0, r2, endAngle, startAngle, false);
+        ctx.closePath();
+        ctx.fill();
+        if (depth > 0) {
+            ctx.stroke();
+        }
+    }
+
+    genColor(numValues, maxValues=10) {
+        numValues += 2;
+        let xR = numValues / 2;
+        let xG = numValues / 5;
+        let xB = numValues / 15;
+        return `rgb(${Math.floor(xR*255)},${Math.floor(xG*255)},${Math.floor(xB*255)})`;
+    }
+
+    renderStar() {
+        let ctx = this._ctx;
+        ctx.clearRect(0, 0, this._w, this._h);
+
+        let q = [this._forrest];
+        this.drawArc(q[0]);
+
+
+        while (q.length) {
+            let node = q.shift();
+            let x = node.x;
+            let y = node.y;
+            let d = node.depth;
+
+            let start = node.xStart;
+            for (let i = 0; i < node.children.length; i++) {
+                let c = node.children[i];
+                q.push(c);
+                let dw = c.xWidth;
+                c.xStart = start;
+                this.drawArc(c);
+                start += dw;
+            }
+        }
+    }
 }
+
+let nodeMove = (x, y) => {
+    let n = sv.nodeAt(x, y);
+    if (n) {
+        let r = RADIUS;
+        tip.innerHTML = setDisplay(n.value) + '<br>' + setDisplay(sv.nodeValueAbove(n));
+        tip.style.setProperty('top', `${n.y+r+10}px`);
+        tip.style.setProperty('left', `${n.x+r+10}px`);
+    } else {
+        tip.innerHTML = '';
+    }
+};
+
+let nodeClick = (x, y) => {
+    let n = sv.nodeAt(x, y);
+    if (n) {
+        sv.setFilter(n.value);
+        sv.render();
+        console.log(sv._sets);
+    }
+};
 
 window.onload = () => {
     let canvas = document.getElementById('setsViz');
+    let canvasH = document.getElementById('setsVizH');
     let ctx = canvas.getContext("2d");
+    let ctxH = canvasH.getContext("2d");
+    canvas.style.setProperty('position', 'absolute');
+    canvasH.style.setProperty('position', 'absolute');
  
-    let sv = new SetsViz(ctx, canvas.width, canvas.height);
+    let sv = new SetsViz(ctx, ctxH, canvas.width, canvas.height);
     sv.updateData(setsGen.sets);
-    sv.render();
+    sv.renderStar();
 
     let tip = document.getElementById('tip');
     tip.style.setProperty('position', 'absolute');
@@ -292,12 +448,12 @@ window.onload = () => {
     document.onmousemove = e => {
         let x = e.clientX - canvas.offsetLeft;
         let y = e.clientY - canvas.offsetTop;
-        let n = sv.nodeAt(x, y);
+        let n = sv.arcAt(x, y);
         if (n) {
-            let r = RADIUS;
-            tip.innerHTML = setDisplay(n.value) + '<br>' + setDisplay(sv.nodeValueAbove(n));
-            tip.style.setProperty('top', `${n.y+r+10}px`);
-            tip.style.setProperty('left', `${n.x+r+10}px`);
+            sv.drawArc(n, true);
+            tip.innerHTML = setDisplay(n.value);
+            tip.style.setProperty('top', `${y+20}px`);
+            tip.style.setProperty('left', `${x+5}px`);
         } else {
             tip.innerHTML = '';
         }
@@ -306,10 +462,10 @@ window.onload = () => {
     document.onclick = e => {
         let x = e.clientX - canvas.offsetLeft;
         let y = e.clientY - canvas.offsetTop;
-        let n = sv.nodeAt(x, y);
+        let n = sv.arcAt(x, y);
         if (n) {
             sv.setFilter(n.value);
-            sv.render();
+            sv.renderStar();
             console.log(sv._sets);
         }
     };
