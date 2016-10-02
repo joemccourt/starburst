@@ -35,15 +35,28 @@ const mapMax = (map) => {
 };
 
 class SetsViz {
-    constructor(ctx, ctxH, w, h) {
+    constructor(canvas, canvasH, w, h) {
+        let ctx = canvas.getContext("2d");
+        let ctxH = canvasH.getContext("2d");
         this._ctx = ctx;
         this._ctxH = ctxH;
+        this._canvas = canvas;
+        this._canvasH = canvasH;
+        this._lastPxRatio = 1;
         this.setSize(w, h);
+
+        let watchCanvasScale = e => {
+            this.fitCanvas();
+            window.requestAnimationFrame(watchCanvasScale);
+        };
+        watchCanvasScale();
     }
 
     setSize(w, h) {
         this._w = w;
         this._h = h;
+        this._w0 = w;
+        this._h0 = h;
     }
 
     setFilter(set) {
@@ -73,6 +86,7 @@ class SetsViz {
             this._sets.add(s);
         }
         this.buildData(this._sets);
+        this.hasData = true;
     }
 
     buildData(sets) {
@@ -226,6 +240,8 @@ class SetsViz {
     }
 
     arcAt(x, y) {
+        x *= this._lastPxRatio;
+        y *= this._lastPxRatio;
         let q = [this._forrest];
         let r = this._arcRadius;
         let x0 = (this._w - 1) / 2;
@@ -245,16 +261,25 @@ class SetsViz {
             return q[0];
         }
 
+        let maxNode;
+        let maxDepth = -1;
         while (q.length) {
             let node = q.shift();
-            if (node.depth === depth && fraction >= node.xStart && fraction <= (node.xStart + node.xWidth)) {
-                return node;
-            }
-            for (let i = 0; i < node.children.length; i++) {
-                let c = node.children[i];
-                q.push(c);
+            if (fraction >= node.xStart && fraction <= (node.xStart + node.xWidth)) {
+                if (node.depth === depth) {
+                    return node;
+                }
+                if (node.depth > maxDepth) {
+                    maxNode = node;
+                    maxDepth = node.depth;
+                }
+                for (let i = 0; i < node.children.length; i++) {
+                    let c = node.children[i];
+                    q.push(c);
+                }
             }
         }
+        return maxNode;
     }
 
     nodeValueAbove(n) {
@@ -268,6 +293,33 @@ class SetsViz {
         }
         value.delete();
         return value;
+    }
+
+    fitCanvas() {
+        let ctx = this._ctx;
+        let ctxH = this._ctxH;
+        let devicePixelRatio = window.devicePixelRatio || 1;
+
+        if (this._lastPxRatio === devicePixelRatio) { return; }
+        this._lastPxRatio = devicePixelRatio;
+
+        let oldWidth = this._w;
+        let oldHeight = this._h;
+
+        this._w = Math.round(this._w0 * devicePixelRatio);
+        this._h = Math.round(this._h0 * devicePixelRatio);
+
+        [this._canvas, this._canvasH].forEach(c => {
+            c.width = this._w;
+            c.height = this._h;
+            c.style.width = `${this._w0}px`;
+            c.style.height = `${this._h0}px`;
+        });
+
+        if (this.hasData) {
+            this.renderStar();
+        }
+        console.log(devicePixelRatio);
     }
 
     render() {
@@ -314,15 +366,17 @@ class SetsViz {
         }
     }
 
-    drawArc(n, isHighlight) {
+    clearHighlight() {
+        this._ctxH.clearRect(0, 0, this._w, this._h);
+    }
 
+    drawArc(n, isHighlight) {
         let depth = n.depth;
         let fractionStart = n.xStart;
         let fractionWidth = n.xWidth;
         let color = this.genColor(n.value.size);
 
         if (isHighlight) {
-            this._ctxH.clearRect(0, 0, this._w, this._h);
             color = 'deeppink';
         }
 
@@ -385,6 +439,7 @@ class SetsViz {
     renderStar() {
         let ctx = this._ctx;
         ctx.clearRect(0, 0, this._w, this._h);
+        this._ctxH.clearRect(0, 0, this._w, this._h);
 
         let q = [this._forrest];
         this.drawArc(q[0]);
@@ -433,27 +488,39 @@ let nodeClick = (x, y) => {
 window.onload = () => {
     let canvas = document.getElementById('setsViz');
     let canvasH = document.getElementById('setsVizH');
-    let ctx = canvas.getContext("2d");
-    let ctxH = canvasH.getContext("2d");
+
     canvas.style.setProperty('position', 'absolute');
     canvasH.style.setProperty('position', 'absolute');
- 
-    let sv = new SetsViz(ctx, ctxH, canvas.width, canvas.height);
+
+    let sv = new SetsViz(canvas, canvasH, canvas.width, canvas.height);
     sv.updateData(setsGen.sets);
     sv.renderStar();
-
+    window.sv = sv;
     let tip = document.getElementById('tip');
     tip.style.setProperty('position', 'absolute');
     document.body.style.setProperty('margin', '0px');
     document.onmousemove = e => {
-        let x = e.clientX - canvas.offsetLeft;
-        let y = e.clientY - canvas.offsetTop;
+        e = e || window.event;
+        var pageX = e.pageX;
+        var pageY = e.pageY;
+        if (pageX === undefined) {
+            pageX = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+            pageY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+        }
+
+        let x = pageX;//e.clientX - canvas.offsetLeft - pageX;
+        let y = pageY;//e.clientY - canvas.offsetTop - pageY;
+        console.log(x, y);
         let n = sv.arcAt(x, y);
         if (n) {
-            sv.drawArc(n, true);
             tip.innerHTML = setDisplay(n.value);
             tip.style.setProperty('top', `${y+20}px`);
             tip.style.setProperty('left', `${x+5}px`);
+            sv.clearHighlight();
+            while(n) {
+                sv.drawArc(n, true);
+                n = n.p;
+            }
         } else {
             tip.innerHTML = '';
         }
@@ -464,9 +531,12 @@ window.onload = () => {
         let y = e.clientY - canvas.offsetTop;
         let n = sv.arcAt(x, y);
         if (n) {
-            sv.setFilter(n.value);
+            // sv.setFilter(n.value);
             sv.renderStar();
-            console.log(sv._sets);
+            // console.log(sv._sets);
+        } else {
+            sv.setFilter(new Set());
+            sv.renderStar();
         }
     };
 };
