@@ -1,8 +1,8 @@
 const Forrest = require('./Forrest');
-const setsGen = require('./setsGen');
 
 const RADIUS = 18;
 
+// Deafult display text for a set
 const getSetDisplay = (set, maxLength, joinChar = ',') => {
     if (maxLength === undefined) {
         maxLength = set.length;
@@ -14,7 +14,7 @@ const getSetDisplay = (set, maxLength, joinChar = ',') => {
     return array.join(joinChar);
 };
 
-class SetsViz {
+class Starburst {
     constructor(canvas, canvasH, w, h) {
         let ctx = canvas.getContext("2d");
         let ctxH = canvasH.getContext("2d");
@@ -25,6 +25,7 @@ class SetsViz {
         this._lastPxRatio = 1;
         this.setSize(w, h);
 
+        this.getSetDisplay = getSetDisplay;
         let watchCanvasScale = e => {
             this.fitCanvas();
             window.requestAnimationFrame(watchCanvasScale);
@@ -112,21 +113,6 @@ class SetsViz {
                         n: c
                     });
                 }
-            }
-        }
-    }
-
-    nodeAt(x, y) {
-        let q = [this._forrest.root];
-        let r = RADIUS;
-        while (q.length) {
-            let node = q.shift();
-            if (Math.pow(node.x-x,2) + Math.pow(node.y-y,2) < r*r) {
-                return node;
-            }
-            for (let i = 0; i < node.children.length; i++) {
-                let c = node.children[i];
-                q.push(c);
             }
         }
     }
@@ -276,6 +262,13 @@ class SetsViz {
         }
     }
 
+    highlightUpTo(node) {
+        while(node) {
+            this.drawArc(node, true);
+            node = node.p;
+        }
+    }
+
     genColor(numValues, maxValues=10) {
         numValues += 2;
         let xR = numValues / 2;
@@ -311,79 +304,4 @@ class SetsViz {
     }
 }
 
-let nodeMove = (x, y) => {
-    let n = sv.nodeAt(x, y);
-    if (n) {
-        let r = RADIUS;
-        tip.innerHTML = getSetDisplay(n.value) + '<br>' + getSetDisplay(sv.nodeValueAbove(n));
-        tip.style.setProperty('top', `${n.y+r+10}px`);
-        tip.style.setProperty('left', `${n.x+r+10}px`);
-    } else {
-        tip.innerHTML = '';
-    }
-};
-
-let nodeClick = (x, y) => {
-    let n = sv.nodeAt(x, y);
-    if (n) {
-        sv.setFilter(n.value);
-        sv.render();
-        console.log(sv._sets);
-    }
-};
-
-window.onload = () => {
-    let canvas = document.getElementById('setsViz');
-    let canvasH = document.getElementById('setsVizH');
-
-    canvas.style.setProperty('position', 'absolute');
-    canvasH.style.setProperty('position', 'absolute');
-
-    let sv = new SetsViz(canvas, canvasH, canvas.width, canvas.height);
-    sv.updateData(setsGen.sets);
-    sv.render();
-    window.sv = sv;
-    let tip = document.getElementById('tip');
-    tip.style.setProperty('position', 'absolute');
-    document.body.style.setProperty('margin', '0px');
-    document.onmousemove = e => {
-        e = e || window.event;
-        var pageX = e.pageX;
-        var pageY = e.pageY;
-        if (pageX === undefined) {
-            pageX = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-            pageY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-        }
-
-        let x = pageX;//e.clientX - canvas.offsetLeft - pageX;
-        let y = pageY;//e.clientY - canvas.offsetTop - pageY;
-        // console.log(x, y);
-        let n = sv.arcAt(x, y);
-        if (n) {
-            tip.innerHTML = getSetDisplay(n.value);
-            tip.style.setProperty('top', `${y+20}px`);
-            tip.style.setProperty('left', `${x+5}px`);
-            sv.clearHighlight();
-            while(n) {
-                sv.drawArc(n, true);
-                n = n.p;
-            }
-        } else {
-            tip.innerHTML = '';
-        }
-    };
-
-    document.onclick = e => {
-        let x = e.clientX - canvas.offsetLeft;
-        let y = e.clientY - canvas.offsetTop;
-        let n = sv.arcAt(x, y);
-        if (n) {
-            // sv.setFilter(n.value);
-            sv.render();
-            // console.log(sv._sets);
-        } else {
-            sv.setFilter(new Set());
-            sv.render();
-        }
-    };
-};
+module.exports = Starburst;

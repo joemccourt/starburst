@@ -44,5 +44,5 @@ const sentenceSets = (text) => {
 module.exports = {
     // sets: sentenceSets(LYNX)
     // sets: sentenceSets(constitution)
-    sets: letterGen(1000, 1000)
+    sets: letterGen(100, 100)
 };

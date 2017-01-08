@@ -1,5 +1,3 @@
-const setsGen = require('./setsGen');
-
 const flatCount = (sets) => {
     let counts = {};
     sets.forEach(s => {
@@ -118,4 +116,3 @@ class Forrest {
 }
 
 module.exports = Forrest;
-// export default Forrest;
