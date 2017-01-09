@@ -22,11 +22,11 @@ const mapMax = (map) => {
 
 class Forrest {
     constructor(sets) {
+        this._sets0 = sets;
         this.getForrestFromSets(sets);
     }
 
     getForrestFromSets(sets) {
-        this._sets0 = sets;
         this._sets = new Set();
         for (let i = 0; i < sets.length; i++) {
             let s = new Set(sets[i]);
@@ -43,8 +43,8 @@ class Forrest {
             isLeaf: false,
             children: []
         };
+
         this.root = forrest;
-        this._forrest = forrest;
         this._buildForrest(forrest, this._sets);
         this._linkParents(forrest);
     }

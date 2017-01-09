@@ -1,4 +1,4 @@
-const setsGen = require('../src/setsGen');
+const setsGen = require('./setsGen');
 const Starburst = require('../src/Starburst');
 
 let RADIUS = 18; // TMP
@@ -15,15 +15,6 @@ let nodeMove = (x, y) => {
     }
 };
 
-let nodeClick = (x, y) => {
-    let n = sv.nodeAt(x, y);
-    if (n) {
-        sv.setFilter(n.value);
-        sv.render();
-        console.log(sv._sets);
-    }
-};
-
 window.onload = () => {
     let canvas = document.getElementById('starburstViz');
     let canvasH = document.getElementById('starburstVizH');
@@ -32,7 +23,7 @@ window.onload = () => {
     canvasH.style.setProperty('position', 'absolute');
 
     let sv = new Starburst(canvas, canvasH, canvas.width, canvas.height);
-    sv.updateData(setsGen.sets);
+    sv.updateData(setsGen.largeSets);
     sv.render();
     window.sv = sv;
     let tip = document.getElementById('tip');
@@ -55,9 +46,13 @@ window.onload = () => {
     document.onclick = e => {
         let x = e.clientX - canvas.offsetLeft;
         let y = e.clientY - canvas.offsetTop;
+
+        // TODO: move node click to Starburst
+        // clicking the center node will move up one level in tree
+        // clicking on any other node will filter by all elements in that node
         let n = sv.arcAt(x, y);
         if (n) {
-            // sv.setFilter(n.value);
+            sv.setFilter(n.value);
             sv.render();
             // console.log(sv._sets);
         } else {

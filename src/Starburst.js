@@ -9,7 +9,7 @@ const getSetDisplay = (set, maxLength, joinChar = ',') => {
     }
     let array = [...set].slice(0, maxLength);
     if (set.size > maxLength) {
-        array[maxLength-1] = '...';
+        array[maxLength - 1] = '...';
     }
     return array.join(joinChar);
 };
@@ -41,8 +41,8 @@ class Starburst {
     }
 
     setFilter(set) {
-        let sets = this._sets0;
-        this._sets = new Set();
+        let sets = this._forrest._sets0;
+        let setsFiltered = new Set();
         for (let i = 0; i < sets.length; i++) {
             let s = new Set(sets[i]);
             s.delete('');
@@ -50,11 +50,12 @@ class Starburst {
             // filter
             if([...set].every(e => s.has(e))) {
                 // console.log('has all', s);
-                this._sets.add(s);
+                setsFiltered.add(s);
             }
         }
-        console.log(this._sets);
-        this.updateData(this._sets);
+        this._forrest.getForrestFromSets([...setsFiltered]);
+        console.log(setsFiltered, this._forrest.root);
+        this._calPos(this._forrest.root);
     }
 
     // sets as 2d array
@@ -197,7 +198,6 @@ class Starburst {
         if (this.hasData) {
             this.render();
         }
-        console.log(devicePixelRatio);
     }
 
     clearHighlight() {
@@ -219,8 +219,8 @@ class Starburst {
         this._arcRadius = r;
         let r1 = r * depth;
         let r2 = r1 + r;
-        let startAngle = (1-fractionStart) * Math.PI * 2;
-        let endAngle = (startAngle - fractionWidth*Math.PI*2) % (2*Math.PI);
+        let startAngle = (1 - fractionStart) * Math.PI * 2;
+        let endAngle = (startAngle - fractionWidth * Math.PI * 2) % (2 * Math.PI);
         if (fractionWidth === 1) {
             startAngle = 0;
             endAngle = 2 * Math.PI;
@@ -269,6 +269,7 @@ class Starburst {
         }
     }
 
+    // TODO: abstract this to callback with node as input
     genColor(numValues, maxValues=10) {
         numValues += 2;
         let xR = numValues / 2;

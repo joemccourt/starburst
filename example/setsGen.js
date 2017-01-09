@@ -1,4 +1,4 @@
-const LYNX = require('./lynxText').LYNX;
+const LYNX = require('./lynxText');
 const constitution = require('./constitution');
 const SIMPLE_SET = [['A'], ['B'], ['C'], ['D']];
 
@@ -42,7 +42,8 @@ const sentenceSets = (text) => {
 
 
 module.exports = {
-    // sets: sentenceSets(LYNX)
-    // sets: sentenceSets(constitution)
-    sets: letterGen(100, 100)
+    lynx: sentenceSets(LYNX),
+    constitution: sentenceSets(constitution),
+    smallSets: letterGen(100, 100),
+    largeSets: letterGen(500, 500),
 };
