@@ -91,8 +91,7 @@ class Forrest {
             let childTrie = {
                 value: new Set([mostCommonElement]),
                 p: parent,
-                n: childrenSets.size,
-                xWidth: childrenSets.size / parent.n * parent.xWidth,
+                n: childrenSets.size + (isLeaf ? 1 : 0),
                 isLeaf,
                 children: []
             };

@@ -3,7 +3,7 @@ const Starburst = require('../src/Starburst');
 
 let RADIUS = 18; // TMP
 let nodeMove = (x, y) => {
-    let n = sv.arcAt(x, y);
+    let n = sv.arcAt(x, y, false);
     if (n) {
         tip.innerHTML = sv.getSetDisplay(n.value);
         tip.style.setProperty('top', `${y+20}px`);
@@ -31,33 +31,20 @@ window.onload = () => {
     document.body.style.setProperty('margin', '0px');
     document.onmousemove = e => {
         e = e || window.event;
-        var pageX = e.pageX;
-        var pageY = e.pageY;
-        if (pageX === undefined) {
-            pageX = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-            pageY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-        }
-
-        let x = pageX;//e.clientX - canvas.offsetLeft - pageX;
-        let y = pageY;//e.clientY - canvas.offsetTop - pageY;
+        let x = e.pageX;
+        let y = e.pageY;
         nodeMove(x, y);
     };
 
     document.onclick = e => {
-        let x = e.clientX - canvas.offsetLeft;
-        let y = e.clientY - canvas.offsetTop;
+        e = e || window.event;
+        let x = e.pageX;
+        let y = e.pageY;
 
         // TODO: move node click to Starburst
         // clicking the center node will move up one level in tree
         // clicking on any other node will filter by all elements in that node
-        let n = sv.arcAt(x, y);
-        if (n) {
-            sv.setFilter(n.value);
-            sv.render();
-            // console.log(sv._sets);
-        } else {
-            sv.setFilter(new Set());
-            sv.render();
-        }
+        let n = sv.arcAt(x, y, true);
+        sv.nodeClick(n);
     };
 };

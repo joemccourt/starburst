@@ -15,6 +15,7 @@ const letterGen = (numSets, numElements) => {
     const probMax = 1;
 
     let sets = [];
+    let map = {};
     for (let i = 0; i < numSets; i++) {
         let set = [];
         for (let k = 0; k < numElements; k++) {
@@ -23,7 +24,11 @@ const letterGen = (numSets, numElements) => {
                 set.push(ALPHAS[k % ALPHAS.length] + ':' + Math.floor(k / ALPHAS.length));
             }
         }
-        sets.push(set);
+        let hash = [...set].sort().join('');
+        if (!map[hash]) {
+            map[hash] = true;
+            sets.push(set);
+        }
     }
     return sets;
 };

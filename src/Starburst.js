@@ -66,10 +66,10 @@ class Starburst {
         this._calPos(this._forrest.root);
     }
 
-    _calPos(forrest) {
+    _calPos(rootNode) {
         let maxDepth = 0;
         let q = [{
-            n: forrest,
+            n: rootNode,
             d: 0
         }];
 
@@ -97,19 +97,24 @@ class Starburst {
         let xPadd = RADIUS;
 
         q = [{
-            n: forrest
+            n: rootNode
         }];
         while (q.length) {
-            let node = q.shift();
-            if (node.n) {
-                let k = numChildrenByDepth[node.n.depth];
-                let x = xPadd + (this._w - 2*xPadd) / k * (node.n.col+0.5);
-                let y = yPadd + (this._h - 2*yPadd) * (node.n.depth) / (this._maxDepth || 1);
-                node.n.y = y;
-                node.n.x = x;
-                node.n.fractionStart = node.n.col / k;
-                for (let i = 0; i < node.n.children.length; i++) {
-                    let c = node.n.children[i];
+            let n = q.shift().n;
+            if (n) {
+                let k = numChildrenByDepth[n.depth];
+                let x = xPadd + (this._w - 2*xPadd) / k * (n.col+0.5);
+                let y = yPadd + (this._h - 2*yPadd) * (n.depth) / (this._maxDepth || 1);
+                n.y = y;
+                n.x = x;
+                n.fractionStart = n.col / k;
+                if (!n.p || n === rootNode) {
+                    n.xWidth = 1;
+                } else {
+                    n.xWidth = n.n / n.p.n * n.p.xWidth;
+                }
+                for (let i = 0; i < n.children.length; i++) {
+                    let c = n.children[i];
                     q.push({
                         n: c
                     });
@@ -118,7 +123,7 @@ class Starburst {
         }
     }
 
-    arcAt(x, y) {
+    arcAt(x, y, onlyInside) {
         x *= this._lastPxRatio;
         y *= this._lastPxRatio;
         let q = [this._forrest.root];
@@ -127,8 +132,8 @@ class Starburst {
         let y0 = (this._h - 1) / 2;
         let dx = x - x0;
         let dy = y - y0;
-        let dr = Math.sqrt(dx*dx + dy*dy);
-        let depth = Math.floor(dr / r);
+        let dr = Math.sqrt(dx * dx + dy * dy);
+        let depth = Math.floor(dr / r) - q[0].depth;
 
         let angle = Math.atan2(-dy, dx);
         let fraction = angle / (Math.PI * 2);
@@ -158,10 +163,29 @@ class Starburst {
                 }
             }
         }
-        return maxNode;
+        return onlyInside ? undefined : maxNode;
     }
 
-    nodeValueAbove(n) {
+    nodeHover(node) {
+    }
+
+    nodeClick(node) {
+        if (!node) { return; }
+
+        console.log('node', node);
+        let isRoot = node === this._forrest.root;
+        if (isRoot && this.lastNode && this.lastNode.p) {
+            node = this.lastNode.p;
+        }
+
+        // this.setFilter(this.nodeValueAbove(node, true));
+        this.lastNode = node;
+        this._forrest.root = node;
+        this._calPos(this._forrest.root);
+        this.render();
+    }
+
+    nodeValueAbove(n, withCurrent) {
         let value = new Set();
         while(n.p) {
             let v = [...n.p.value];
@@ -170,6 +194,14 @@ class Starburst {
             });
             n = n.p;
         }
+
+        if (withCurrent) {
+            let v = [...n.value];
+            v.forEach(e => {
+                value.add(e);
+            });
+        }
+
         value.delete();
         return value;
     }
@@ -265,7 +297,11 @@ class Starburst {
     highlightUpTo(node) {
         while(node) {
             this.drawArc(node, true);
-            node = node.p;
+            if (node === this._forrest.root) {
+                node = undefined;
+            } else {
+                node = node.p;
+            }
         }
     }
 
