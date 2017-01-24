@@ -3,16 +3,6 @@ const Tree = require('./Tree');
 const RADIUS = 18;
 
 // Deafult display text for a set
-const getSetDisplay = (set, maxLength, joinChar = ',') => {
-    if (maxLength === undefined) {
-        maxLength = set.length;
-    }
-    let array = [...set].slice(0, maxLength);
-    if (set.size > maxLength) {
-        array[maxLength - 1] = '...';
-    }
-    return array.join(joinChar);
-};
 
 class Starburst {
     constructor(canvas, canvasH, w, h) {
@@ -25,7 +15,7 @@ class Starburst {
         this._lastPxRatio = 1;
         this.setSize(w, h);
 
-        this.getSetDisplay = getSetDisplay;
+        // Create loop to rerender canvas on page scale change
         let watchCanvasScale = e => {
             this.fitCanvas();
             window.requestAnimationFrame(watchCanvasScale);
@@ -56,6 +46,18 @@ class Starburst {
         this.hasData = true;
         this._calPos(this._tree.root);
     }
+
+    // How to stringify node
+    static nodeToString(set, maxLength, joinChar = ',') {
+        if (maxLength === undefined) {
+            maxLength = set.length;
+        }
+        let array = [...set].slice(0, maxLength);
+        if (set.size > maxLength) {
+            array[maxLength - 1] = '...';
+        }
+        return array.join(joinChar);
+    };
 
     _calPos(rootNode) {
         let maxDepth = 0;
@@ -158,6 +160,7 @@ class Starburst {
     }
 
     nodeHover(node) {
+        // TODO: move default tool tip display into here
     }
 
     nodeClick(node) {
@@ -172,27 +175,6 @@ class Starburst {
         this._tree.root = node;
         this._calPos(this._tree.root);
         this.render();
-    }
-
-    nodeValueAbove(n, withCurrent) {
-        let value = new Set();
-        while(n.p) {
-            let v = [...n.p.value];
-            v.forEach(e => {
-                value.add(e);
-            });
-            n = n.p;
-        }
-
-        if (withCurrent) {
-            let v = [...n.value];
-            v.forEach(e => {
-                value.add(e);
-            });
-        }
-
-        value.delete();
-        return value;
     }
 
     fitCanvas() {
@@ -229,7 +211,7 @@ class Starburst {
         let depth = n.depth;
         let fractionStart = n.xStart;
         let fractionWidth = n.xWidth;
-        let color = this.genColor(n.value.size);
+        let color = this.genColor(n.n);
 
         if (isHighlight) {
             color = 'deeppink';
@@ -296,10 +278,10 @@ class Starburst {
 
     // TODO: abstract this to callback with node as input
     genColor(numValues, maxValues=10) {
-        numValues += 2;
-        let xR = numValues / 2;
-        let xG = numValues / 5;
-        let xB = numValues / 15;
+        // numValues += 2;
+        let xR = 1 - numValues / 200;
+        let xG = 1 - numValues / 500;
+        let xB = 1 - numValues / 1500;
         return `rgb(${Math.floor(xR*255)},${Math.floor(xG*255)},${Math.floor(xB*255)})`;
     }
 

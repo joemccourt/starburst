@@ -8,7 +8,7 @@ let sv;
 let nodeMove = (x, y) => {
     let n = sv.arcAt(x, y, false);
     if (n) {
-        tip.innerHTML = sv.getSetDisplay(n.value);
+        tip.innerHTML = Starburst.nodeToString(n.value);
         tip.style.setProperty('top', `${y+20}px`);
         tip.style.setProperty('left', `${x+5}px`);
         sv.clearHighlight();
