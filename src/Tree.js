@@ -20,9 +20,13 @@ const mapMax = (map) => {
     return maxV;
 };
 
+// weight is by default number of children sets plus if is leaf
+const DEFAULT_WEIGHT_FN = (node, numChildren) => numChildren + (node.isLeaf ? 1 : 0);
+
 class Tree {
-    constructor(sets) {
+    constructor(sets, weightFn = DEFAULT_WEIGHT_FN) {
         this._sets0 = sets;
+        this.weightFn = weightFn;
         this.getTreeFromSets(sets);
     }
 
@@ -91,10 +95,13 @@ class Tree {
             let childTrie = {
                 value: new Set([mostCommonElement]),
                 p: parent,
-                n: childrenSets.size + (isLeaf ? 1 : 0),
                 isLeaf,
                 children: []
             };
+
+            // TODO: might want to make this separate tree pass
+            childTrie.n = this.weightFn(childTrie, childrenSets.size);
+
             parent.children.push(childTrie);
             this._buildTree(childTrie, childrenSets, childrenCounts);
             this._buildTree(parent, sideTrieSets, sideCounts);
