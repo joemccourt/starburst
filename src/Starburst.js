@@ -40,27 +40,18 @@ class Starburst {
         this._h0 = h;
     }
 
-    setFilter(set) {
-        let sets = this._tree._sets0;
-        let setsFiltered = new Set();
-        for (let i = 0; i < sets.length; i++) {
-            let s = new Set(sets[i]);
-            s.delete('');
-
-            // filter
-            if([...set].every(e => s.has(e))) {
-                // console.log('has all', s);
-                setsFiltered.add(s);
-            }
+    // data is an array of sets
+    // else assumes it's a tree directly
+    setData(data) {
+        if (data instanceof Array) {
+            this._tree = new Tree(data);
+        } else if (data instanceof Object) {
+            this._tree = {
+                root: data
+            };
+        } else {
+            return;
         }
-        this._tree.getTreeFromSets([...setsFiltered]);
-        console.log(setsFiltered, this._tree.root);
-        this._calPos(this._tree.root);
-    }
-
-    // sets as 2d array
-    updateData(sets) {
-        this._tree = new Tree(sets);
 
         this.hasData = true;
         this._calPos(this._tree.root);
@@ -172,13 +163,11 @@ class Starburst {
     nodeClick(node) {
         if (!node) { return; }
 
-        console.log('node', node);
         let isRoot = node === this._tree.root;
         if (isRoot && this.lastNode && this.lastNode.p) {
             node = this.lastNode.p;
         }
 
-        // this.setFilter(this.nodeValueAbove(node, true));
         this.lastNode = node;
         this._tree.root = node;
         this._calPos(this._tree.root);
