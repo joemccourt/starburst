@@ -1,4 +1,4 @@
-const Forrest = require('./Forrest');
+const Tree = require('./Tree');
 
 const RADIUS = 18;
 
@@ -41,7 +41,7 @@ class Starburst {
     }
 
     setFilter(set) {
-        let sets = this._forrest._sets0;
+        let sets = this._tree._sets0;
         let setsFiltered = new Set();
         for (let i = 0; i < sets.length; i++) {
             let s = new Set(sets[i]);
@@ -53,17 +53,17 @@ class Starburst {
                 setsFiltered.add(s);
             }
         }
-        this._forrest.getForrestFromSets([...setsFiltered]);
-        console.log(setsFiltered, this._forrest.root);
-        this._calPos(this._forrest.root);
+        this._tree.getTreeFromSets([...setsFiltered]);
+        console.log(setsFiltered, this._tree.root);
+        this._calPos(this._tree.root);
     }
 
     // sets as 2d array
     updateData(sets) {
-        this._forrest = new Forrest(sets);
+        this._tree = new Tree(sets);
 
         this.hasData = true;
-        this._calPos(this._forrest.root);
+        this._calPos(this._tree.root);
     }
 
     _calPos(rootNode) {
@@ -87,7 +87,7 @@ class Starburst {
                     let c = node.n.children[i];
                     q.push({
                         n: c,
-                        d: node.d+1
+                        d: node.d + 1
                     });
                 }
             }
@@ -126,7 +126,7 @@ class Starburst {
     arcAt(x, y, onlyInside) {
         x *= this._lastPxRatio;
         y *= this._lastPxRatio;
-        let q = [this._forrest.root];
+        let q = [this._tree.root];
         let r = this._arcRadius;
         let x0 = (this._w - 1) / 2;
         let y0 = (this._h - 1) / 2;
@@ -173,15 +173,15 @@ class Starburst {
         if (!node) { return; }
 
         console.log('node', node);
-        let isRoot = node === this._forrest.root;
+        let isRoot = node === this._tree.root;
         if (isRoot && this.lastNode && this.lastNode.p) {
             node = this.lastNode.p;
         }
 
         // this.setFilter(this.nodeValueAbove(node, true));
         this.lastNode = node;
-        this._forrest.root = node;
-        this._calPos(this._forrest.root);
+        this._tree.root = node;
+        this._calPos(this._tree.root);
         this.render();
     }
 
@@ -297,7 +297,7 @@ class Starburst {
     highlightUpTo(node) {
         while(node) {
             this.drawArc(node, true);
-            if (node === this._forrest.root) {
+            if (node === this._tree.root) {
                 node = undefined;
             } else {
                 node = node.p;
@@ -319,7 +319,7 @@ class Starburst {
         ctx.clearRect(0, 0, this._w, this._h);
         this._ctxH.clearRect(0, 0, this._w, this._h);
 
-        let q = [this._forrest.root];
+        let q = [this._tree.root];
         this.drawArc(q[0]);
 
         while (q.length) {

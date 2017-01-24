@@ -20,13 +20,13 @@ const mapMax = (map) => {
     return maxV;
 };
 
-class Forrest {
+class Tree {
     constructor(sets) {
         this._sets0 = sets;
-        this.getForrestFromSets(sets);
+        this.getTreeFromSets(sets);
     }
 
-    getForrestFromSets(sets) {
+    getTreeFromSets(sets) {
         this._sets = new Set();
         for (let i = 0; i < sets.length; i++) {
             let s = new Set(sets[i]);
@@ -34,7 +34,7 @@ class Forrest {
             this._sets.add(s);
         }
 
-        let forrest = {
+        let rootNode = {
             value: new Set(),
             depth: 0,
             n: this._sets.size,
@@ -44,13 +44,13 @@ class Forrest {
             children: []
         };
 
-        this.root = forrest;
-        this._buildForrest(forrest, this._sets);
-        this._linkParents(forrest);
+        this.root = rootNode;
+        this._buildTree(rootNode, this._sets);
+        this._linkParents(rootNode);
     }
 
-    // build a forrest of trie trees
-    _buildForrest(parent, sets, countsMap) {
+    // build a trie tree
+    _buildTree(parent, sets, countsMap) {
         if (sets.size === 0) {
             return;
         }
@@ -96,22 +96,22 @@ class Forrest {
                 children: []
             };
             parent.children.push(childTrie);
-            this._buildForrest(childTrie, childrenSets, childrenCounts);
-            this._buildForrest(parent, sideTrieSets, sideCounts);
+            this._buildTree(childTrie, childrenSets, childrenCounts);
+            this._buildTree(parent, sideTrieSets, sideCounts);
         } else {
             parent.isLeaf = isLeaf;
             parent.value.add(mostCommonElement);
-            this._buildForrest(parent, childrenSets, childrenCounts);
+            this._buildTree(parent, childrenSets, childrenCounts);
         }
     }
 
-    _linkParents(forrest) {
-        for(let i = 0; i < forrest.children.length; i++) {
-            let c = forrest.children[i];
-            c.p = forrest;
+    _linkParents(node) {
+        for(let i = 0; i < node.children.length; i++) {
+            let c = node.children[i];
+            c.p = node;
             this._linkParents(c);
         }
     }
 }
 
-module.exports = Forrest;
+module.exports = Tree;
