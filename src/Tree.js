@@ -40,10 +40,7 @@ class Tree {
 
         let rootNode = {
             value: new Set(),
-            depth: 0,
-            n: this._sets.size,
-            xStart: 0,
-            xWidth: 1,
+            weight: this._sets.size,
             isLeaf: false,
             children: []
         };
@@ -100,7 +97,7 @@ class Tree {
             };
 
             // TODO: might want to make this separate tree pass
-            childTrie.n = this.weightFn(childTrie, childrenSets.size);
+            childTrie.weight = this.weightFn(childTrie, childrenSets.size);
 
             parent.children.push(childTrie);
             this._buildTree(childTrie, childrenSets, childrenCounts);

@@ -1,13 +1,9 @@
 const Tree = require('./Tree');
 
-const RADIUS = 18;
-
-// Deafult display text for a set
-
 class Starburst {
     constructor(canvas, canvasH, w, h) {
-        let ctx = canvas.getContext("2d");
-        let ctxH = canvasH.getContext("2d");
+        let ctx = canvas.getContext('2d');
+        let ctxH = canvasH.getContext('2d');
         this._ctx = ctx;
         this._ctxH = ctxH;
         this._canvas = canvas;
@@ -60,57 +56,42 @@ class Starburst {
     };
 
     _calPos(rootNode) {
-        let maxDepth = 0;
-        let q = [{
-            n: rootNode,
-            d: 0
-        }];
-
-        let numChildrenByDepth = [];
+        this._maxDepth = 0;
+        rootNode._depth = 0;
+        let q = [rootNode];
         while (q.length) {
             let node = q.shift();
-            if (node.n) {
-                if (node.d > maxDepth) {
-                    maxDepth = node.d;
+            if (node) {
+                if (node._depth > this._maxDepth) {
+                    this._maxDepth = node._depth;
                 }
-                node.n.col = numChildrenByDepth[node.d] || 0;
-                numChildrenByDepth[node.d] = node.n.col + 1;
-                node.n.depth = node.d;
-                for (let i = 0; i < node.n.children.length; i++) {
-                    let c = node.n.children[i];
-                    q.push({
-                        n: c,
-                        d: node.d + 1
-                    });
+                let weightSoFar = 0;
+                for (let i = 0; i < node.children.length; i++) {
+                    let c = node.children[i];
+                    c._depth = node._depth + 1;
+                    c._weightStart = weightSoFar;
+                    weightSoFar += c.weight;
+                    q.push(c);
                 }
             }
         }
-        this._maxDepth = maxDepth;
-        let yPadd = 10 + RADIUS;
-        let xPadd = RADIUS;
 
-        q = [{
-            n: rootNode
-        }];
+        // _normalizedWidth: fraction node takes at its depth for entire tree
+        // _normalizedStart: fraction where node starts at its depth
+        // where fraction is [0, 1] corresponding to radians [zero, 2pi]
+        q = [rootNode];
         while (q.length) {
-            let n = q.shift().n;
+            let n = q.shift();
             if (n) {
-                let k = numChildrenByDepth[n.depth];
-                let x = xPadd + (this._w - 2*xPadd) / k * (n.col+0.5);
-                let y = yPadd + (this._h - 2*yPadd) * (n.depth) / (this._maxDepth || 1);
-                n.y = y;
-                n.x = x;
-                n.fractionStart = n.col / k;
                 if (!n.p || n === rootNode) {
-                    n.xWidth = 1;
+                    n._normalizedWidth = 1;
+                    n._normalizedStart = 0;
                 } else {
-                    n.xWidth = n.n / n.p.n * n.p.xWidth;
+                    n._normalizedWidth = n.weight / n.p.weight * n.p._normalizedWidth;
+                    n._normalizedStart = n._weightStart / n.p.weight * n.p._normalizedWidth + n.p._normalizedStart;
                 }
                 for (let i = 0; i < n.children.length; i++) {
-                    let c = n.children[i];
-                    q.push({
-                        n: c
-                    });
+                    q.push(n.children[i]);
                 }
             }
         }
@@ -126,7 +107,7 @@ class Starburst {
         let dx = x - x0;
         let dy = y - y0;
         let dr = Math.sqrt(dx * dx + dy * dy);
-        let depth = Math.floor(dr / r) - q[0].depth;
+        let depth = Math.floor(dr / r) - q[0]._depth;
 
         let angle = Math.atan2(-dy, dx);
         let fraction = angle / (Math.PI * 2);
@@ -142,13 +123,13 @@ class Starburst {
         let maxDepth = -1;
         while (q.length) {
             let node = q.shift();
-            if (fraction >= node.xStart && fraction <= (node.xStart + node.xWidth)) {
-                if (node.depth === depth) {
+            if (fraction >= node._normalizedStart && fraction <= (node._normalizedStart + node._normalizedWidth)) {
+                if (node._depth === depth) {
                     return node;
                 }
-                if (node.depth > maxDepth) {
+                if (node._depth > maxDepth) {
                     maxNode = node;
-                    maxDepth = node.depth;
+                    maxDepth = node._depth;
                 }
                 for (let i = 0; i < node.children.length; i++) {
                     let c = node.children[i];
@@ -207,11 +188,11 @@ class Starburst {
         this._ctxH.clearRect(0, 0, this._w, this._h);
     }
 
-    drawArc(n, isHighlight) {
-        let depth = n.depth;
-        let fractionStart = n.xStart;
-        let fractionWidth = n.xWidth;
-        let color = this.genColor(n.n);
+    drawArc(node, isHighlight) {
+        let depth = node._depth;
+        let fractionStart = node._normalizedStart;
+        let fractionWidth = node._normalizedWidth;
+        let color = this.genColor(node.weight);
 
         if (isHighlight) {
             color = 'deeppink';
@@ -277,36 +258,24 @@ class Starburst {
     }
 
     // TODO: abstract this to callback with node as input
-    genColor(numValues, maxValues=10) {
-        // numValues += 2;
-        let xR = 1 - numValues / 200;
-        let xG = 1 - numValues / 500;
-        let xB = 1 - numValues / 1500;
+    genColor(weight, maxValues=10) {
+        // weight += 2;
+        let xR = 1 - weight / 200;
+        let xG = 1 - weight / 500;
+        let xB = 1 - weight / 1500;
         return `rgb(${Math.floor(xR*255)},${Math.floor(xG*255)},${Math.floor(xB*255)})`;
     }
 
     render() {
-        let ctx = this._ctx;
-        ctx.clearRect(0, 0, this._w, this._h);
+        this._ctx.clearRect(0, 0, this._w, this._h);
         this._ctxH.clearRect(0, 0, this._w, this._h);
 
         let q = [this._tree.root];
-        this.drawArc(q[0]);
-
         while (q.length) {
             let node = q.shift();
-            let x = node.x;
-            let y = node.y;
-            let d = node.depth;
-
-            let start = node.xStart;
+            this.drawArc(node);
             for (let i = 0; i < node.children.length; i++) {
-                let c = node.children[i];
-                q.push(c);
-                let dw = c.xWidth;
-                c.xStart = start;
-                this.drawArc(c);
-                start += dw;
+                q.push(node.children[i]);
             }
         }
     }
