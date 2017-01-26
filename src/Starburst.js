@@ -12,7 +12,7 @@ class Starburst {
         this.setSize(w, h);
 
         // Create loop to rerender canvas on page scale change
-        let watchCanvasScale = e => {
+        let watchCanvasScale = () => {
             this.fitCanvas();
             window.requestAnimationFrame(watchCanvasScale);
         };
@@ -33,7 +33,7 @@ class Starburst {
             this._tree = new Tree(data);
         } else if (data instanceof Object) {
             this._tree = {
-                root: data
+                root: data,
             };
         } else {
             return;
@@ -45,15 +45,13 @@ class Starburst {
 
     // How to stringify node
     static nodeToString(set, maxLength, joinChar = ',') {
-        if (maxLength === undefined) {
-            maxLength = set.length;
-        }
-        let array = [...set].slice(0, maxLength);
-        if (set.size > maxLength) {
-            array[maxLength - 1] = '...';
+        let l = maxLength || set.length;
+        let array = [...set].slice(0, l);
+        if (set.size > l) {
+            array[l - 1] = '...';
         }
         return array.join(joinChar);
-    };
+    }
 
     _calPos(rootNode) {
         this._maxDepth = 0;
@@ -88,7 +86,8 @@ class Starburst {
                     n._normalizedStart = 0;
                 } else {
                     n._normalizedWidth = n.weight / n.p.weight * n.p._normalizedWidth;
-                    n._normalizedStart = n._weightStart / n.p.weight * n.p._normalizedWidth + n.p._normalizedStart;
+                    n._normalizedStart = n._weightStart / n.p.weight * n.p._normalizedWidth
+                        + n.p._normalizedStart;
                 }
                 for (let i = 0; i < n.children.length; i++) {
                     q.push(n.children[i]);
@@ -123,7 +122,8 @@ class Starburst {
         let maxDepth = -1;
         while (q.length) {
             let node = q.shift();
-            if (fraction >= node._normalizedStart && fraction <= (node._normalizedStart + node._normalizedWidth)) {
+            if (fraction >= node._normalizedStart &&
+                fraction <= (node._normalizedStart + node._normalizedWidth)) {
                 if (node._depth === depth) {
                     return node;
                 }
@@ -140,39 +140,35 @@ class Starburst {
         return onlyInside ? undefined : maxNode;
     }
 
-    nodeHover(node) {
+    // nodeHover(node) {
         // TODO: move default tool tip display into here
-    }
+    // }
 
     nodeClick(node) {
         if (!node) { return; }
 
         let isRoot = node === this._tree.root;
+        let newRoot = node;
         if (isRoot && this.lastNode && this.lastNode.p) {
-            node = this.lastNode.p;
+            newRoot = this.lastNode.p;
         }
 
-        this.lastNode = node;
-        this._tree.root = node;
+        this.lastNode = newRoot;
+        this._tree.root = newRoot;
         this._calPos(this._tree.root);
         this.render();
     }
 
     fitCanvas() {
-        let ctx = this._ctx;
-        let ctxH = this._ctxH;
         let devicePixelRatio = window.devicePixelRatio || 1;
 
         if (this._lastPxRatio === devicePixelRatio) { return; }
         this._lastPxRatio = devicePixelRatio;
 
-        let oldWidth = this._w;
-        let oldHeight = this._h;
-
         this._w = Math.round(this._w0 * devicePixelRatio);
         this._h = Math.round(this._h0 * devicePixelRatio);
 
-        [this._canvas, this._canvasH].forEach(c => {
+        [this._canvas, this._canvasH].forEach((c) => {
             c.width = this._w;
             c.height = this._h;
             c.style.width = `${this._w0}px`;
@@ -192,7 +188,7 @@ class Starburst {
         let depth = node._depth;
         let fractionStart = node._normalizedStart;
         let fractionWidth = node._normalizedWidth;
-        let color = this.genColor(node.weight);
+        let color = Starburst.genColor(node.weight);
 
         if (isHighlight) {
             color = 'deeppink';
@@ -217,18 +213,18 @@ class Starburst {
         // Center (x0, y0)
         let x0 = (this._w - 1) / 2;
         let y0 = (this._h - 1) / 2;
-        
+
         // Inner arc (x1, y1), (x2, y2)
         let x1 = x0 + r1 * caStart;
         let y1 = y0 + r1 * saStart;
-        let x2 = x0 + r1 * caEnd;
-        let y2 = y0 + r1 * saEnd;
+        // let x2 = x0 + r1 * caEnd;
+        // let y2 = y0 + r1 * saEnd;
 
         // Outer arc (x3, y3), (x4, y4)
         let x3 = x0 + r2 * caEnd;
         let y3 = y0 + r2 * saEnd;
-        let x4 = x0 + r2 * caStart;
-        let y4 = y0 + r2 * saStart;
+        // let x4 = x0 + r2 * caStart;
+        // let y4 = y0 + r2 * saStart;
 
         let ctx = isHighlight ? this._ctxH : this._ctx;
         ctx.fillStyle = color;
@@ -247,7 +243,7 @@ class Starburst {
     }
 
     highlightUpTo(node) {
-        while(node) {
+        while (node) {
             this.drawArc(node, true);
             if (node === this._tree.root) {
                 node = undefined;
@@ -258,12 +254,12 @@ class Starburst {
     }
 
     // TODO: abstract this to callback with node as input
-    genColor(weight, maxValues=10) {
+    static genColor(weight) {
         // weight += 2;
         let xR = 1 - weight / 200;
         let xG = 1 - weight / 500;
         let xB = 1 - weight / 1500;
-        return `rgb(${Math.floor(xR*255)},${Math.floor(xG*255)},${Math.floor(xB*255)})`;
+        return `rgb(${Math.floor(xR * 255)},${Math.floor(xG * 255)},${Math.floor(xB * 255)})`;
     }
 
     render() {

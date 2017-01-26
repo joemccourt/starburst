@@ -1,7 +1,7 @@
 const flatCount = (sets) => {
     let counts = {};
-    sets.forEach(s => {
-        s.forEach(e => {
+    sets.forEach((s) => {
+        s.forEach((e) => {
             counts[e] = (counts[e] || 0) + 1;
         });
     });
@@ -11,12 +11,13 @@ const flatCount = (sets) => {
 const mapMax = (map) => {
     let max = 0;
     let maxV = '';
-    for (let k in map) {
-        if (map[k] > max) {
-            max = map[k];
-            maxV = k;
-        }
-    }
+    Object.keys(map)
+        .forEach((k) => {
+            if (map[k] > max) {
+                max = map[k];
+                maxV = k;
+            }
+        });
     return maxV;
 };
 
@@ -41,12 +42,12 @@ class Tree {
         let rootNode = {
             value: new Set(),
             weight: this._sets.size,
-            isLeaf: false,
-            children: []
+            isLeaf: false, // not always true
+            children: [],
         };
 
         this.root = rootNode;
-        this._buildTree(rootNode, this._sets);
+        this._buildTree(rootNode, this._sets, flatCount(this._sets));
         this._linkParents(rootNode);
     }
 
@@ -54,9 +55,6 @@ class Tree {
     _buildTree(parent, sets, countsMap) {
         if (sets.size === 0) {
             return;
-        }
-        if (!countsMap) {
-            countsMap = flatCount(sets);
         }
 
         let mostCommonElement = mapMax(countsMap);
@@ -69,7 +67,7 @@ class Tree {
 
         let isLeaf = false;
 
-        sets.forEach(s => {
+        sets.forEach((s) => {
             if (s.has(mostCommonElement)) {
                 s.delete(mostCommonElement);
                 if (s.size > 0) {
@@ -77,12 +75,12 @@ class Tree {
                 } else {
                     isLeaf = true;
                 }
-                s.forEach(e => {
+                s.forEach((e) => {
                     childrenCounts[e] = (childrenCounts[e] || 0) + 1;
                 });
-            } else if(s.size) {
+            } else if (s.size) {
                 sideTrieSets.add(s);
-                s.forEach(e => {
+                s.forEach((e) => {
                     sideCounts[e] = (sideCounts[e] || 0) + 1;
                 });
             }
@@ -93,7 +91,7 @@ class Tree {
                 value: new Set([mostCommonElement]),
                 p: parent,
                 isLeaf,
-                children: []
+                children: [],
             };
 
             // TODO: might want to make this separate tree pass
@@ -103,14 +101,13 @@ class Tree {
             this._buildTree(childTrie, childrenSets, childrenCounts);
             this._buildTree(parent, sideTrieSets, sideCounts);
         } else {
-            parent.isLeaf = isLeaf;
             parent.value.add(mostCommonElement);
             this._buildTree(parent, childrenSets, childrenCounts);
         }
     }
 
     _linkParents(node) {
-        for(let i = 0; i < node.children.length; i++) {
+        for (let i = 0; i < node.children.length; i++) {
             let c = node.children[i];
             c.p = node;
             this._linkParents(c);

@@ -1,16 +1,15 @@
 const setsGen = require('./setsGen');
 const Starburst = require('../src/Starburst');
 
-let RADIUS = 18; // TMP
-
 let sv;
 
 let nodeMove = (x, y) => {
     let n = sv.arcAt(x, y, false);
+    let tip = document.getElementById('tip');
     if (n) {
         tip.innerHTML = Starburst.nodeToString(n.value);
-        tip.style.setProperty('top', `${y+20}px`);
-        tip.style.setProperty('left', `${x+5}px`);
+        tip.style.setProperty('top', `${y + 20}px`);
+        tip.style.setProperty('left', `${x + 5}px`);
         sv.clearHighlight();
         sv.highlightUpTo(n);
     } else {
@@ -33,14 +32,14 @@ window.onload = () => {
     tip.style.setProperty('position', 'absolute');
     tip.style.setProperty('background', 'white');
     document.body.style.setProperty('margin', '0px');
-    document.onmousemove = e => {
+    document.onmousemove = (e) => {
         e = e || window.event;
         let x = e.pageX;
         let y = e.pageY;
         nodeMove(x, y);
     };
 
-    document.onclick = e => {
+    document.onclick = (e) => {
         e = e || window.event;
         let x = e.pageX;
         let y = e.pageY;
