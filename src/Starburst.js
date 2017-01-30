@@ -188,7 +188,7 @@ class Starburst {
         let depth = node._depth;
         let fractionStart = node._normalizedStart;
         let fractionWidth = node._normalizedWidth;
-        let color = Starburst.genColor(node.weight);
+        let color = Starburst.genColor(node);
 
         if (isHighlight) {
             color = 'deeppink';
@@ -254,11 +254,14 @@ class Starburst {
     }
 
     // TODO: abstract this to callback with node as input
-    static genColor(weight) {
+    static genColor(node) {
         // weight += 2;
-        let xR = 1 - weight / 200;
-        let xG = 1 - weight / 500;
-        let xB = 1 - weight / 1500;
+        let weight = Math.pow(node._normalizedWidth, 0.3);
+        let centerColor = { r: 0, g: 1, b: 0 };
+        let outerColor = { r: 0.2, g: 0, b: 0 };
+        let xR = weight * centerColor.r + (1 - weight) * outerColor.r;
+        let xG = weight * centerColor.g + (1 - weight) * outerColor.g;
+        let xB = weight * centerColor.b + (1 - weight) * outerColor.b;
         return `rgb(${Math.floor(xR * 255)},${Math.floor(xG * 255)},${Math.floor(xB * 255)})`;
     }
 
