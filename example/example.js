@@ -10,8 +10,7 @@ let nodeMove = (x, y) => {
         tip.innerHTML = Starburst.nodeToString(n.value);
         tip.style.setProperty('top', `${y + 20}px`);
         tip.style.setProperty('left', `${x + 5}px`);
-        sv.clearHighlight();
-        sv.highlightUpTo(n);
+        sv.nodeHover(n);
     } else {
         tip.innerHTML = '';
     }
@@ -25,6 +24,7 @@ window.onload = () => {
     canvasH.style.setProperty('position', 'absolute');
 
     sv = new Starburst(canvas, canvasH, canvas.width, canvas.height);
+    sv.setColorFunction(() => 'rgb(255, 0, 0)');
     sv.setData(setsGen.largeSets);
     sv.render();
 

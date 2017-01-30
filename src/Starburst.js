@@ -10,10 +10,11 @@ class Starburst {
         this._canvasH = canvasH;
         this._lastPxRatio = 1;
         this.setSize(w, h);
+        this.highlightColor = 'yellow';
 
         // Create loop to rerender canvas on page scale change
         let watchCanvasScale = () => {
-            this.fitCanvas();
+            this._fitCanvas();
             window.requestAnimationFrame(watchCanvasScale);
         };
         watchCanvasScale();
@@ -24,6 +25,10 @@ class Starburst {
         this._h = h;
         this._w0 = w;
         this._h0 = h;
+    }
+
+    setColorFunction(fn) {
+        this.genColor = fn;
     }
 
     // data is an array of sets
@@ -43,6 +48,15 @@ class Starburst {
         this._calPos(this._tree.root);
     }
 
+    clear() {
+        this._ctx.clearRect(0, 0, this._w, this._h);
+        this._ctxH.clearRect(0, 0, this._w, this._h);
+    }
+
+    clearHighlight() {
+        this._ctxH.clearRect(0, 0, this._w, this._h);
+    }
+
     // How to stringify node
     static nodeToString(set, maxLength, joinChar = ',') {
         let l = maxLength || set.length;
@@ -53,47 +67,14 @@ class Starburst {
         return array.join(joinChar);
     }
 
-    _calPos(rootNode) {
-        this._maxDepth = 0;
-        rootNode._depth = 0;
-        let q = [rootNode];
-        while (q.length) {
-            let node = q.shift();
-            if (node) {
-                if (node._depth > this._maxDepth) {
-                    this._maxDepth = node._depth;
-                }
-                let weightSoFar = 0;
-                for (let i = 0; i < node.children.length; i++) {
-                    let c = node.children[i];
-                    c._depth = node._depth + 1;
-                    c._weightStart = weightSoFar;
-                    weightSoFar += c.weight;
-                    q.push(c);
-                }
-            }
-        }
-
-        // _normalizedWidth: fraction node takes at its depth for entire tree
-        // _normalizedStart: fraction where node starts at its depth
-        // where fraction is [0, 1] corresponding to radians [zero, 2pi]
-        q = [rootNode];
-        while (q.length) {
-            let n = q.shift();
-            if (n) {
-                if (!n.p || n === rootNode) {
-                    n._normalizedWidth = 1;
-                    n._normalizedStart = 0;
-                } else {
-                    n._normalizedWidth = n.weight / n.p.weight * n.p._normalizedWidth;
-                    n._normalizedStart = n._weightStart / n.p.weight * n.p._normalizedWidth
-                        + n.p._normalizedStart;
-                }
-                for (let i = 0; i < n.children.length; i++) {
-                    q.push(n.children[i]);
-                }
-            }
-        }
+    static genColor(node) {
+        let weight = Math.pow(node._normalizedWidth, 0.3);
+        let centerColor = { r: 0, g: 1, b: 0 };
+        let outerColor = { r: 0.2, g: 0, b: 0 };
+        let xR = weight * centerColor.r + (1 - weight) * outerColor.r;
+        let xG = weight * centerColor.g + (1 - weight) * outerColor.g;
+        let xB = weight * centerColor.b + (1 - weight) * outerColor.b;
+        return `rgb(${Math.floor(xR * 255)},${Math.floor(xG * 255)},${Math.floor(xB * 255)})`;
     }
 
     arcAt(x, y, onlyInside) {
@@ -140,9 +121,10 @@ class Starburst {
         return onlyInside ? undefined : maxNode;
     }
 
-    // nodeHover(node) {
-        // TODO: move default tool tip display into here
-    // }
+    nodeHover(node) {
+        this.clearHighlight();
+        this._highlightUpTo(node);
+    }
 
     nodeClick(node) {
         if (!node) { return; }
@@ -159,7 +141,19 @@ class Starburst {
         this.render();
     }
 
-    fitCanvas() {
+    render() {
+        this.clear();
+        let q = [this._tree.root];
+        while (q.length) {
+            let node = q.shift();
+            this._drawArc(node);
+            for (let i = 0; i < node.children.length; i++) {
+                q.push(node.children[i]);
+            }
+        }
+    }
+
+    _fitCanvas() {
         let devicePixelRatio = window.devicePixelRatio || 1;
 
         if (this._lastPxRatio === devicePixelRatio) { return; }
@@ -180,18 +174,58 @@ class Starburst {
         }
     }
 
-    clearHighlight() {
-        this._ctxH.clearRect(0, 0, this._w, this._h);
+    _calPos(rootNode) {
+        this._maxDepth = 0;
+        rootNode._depth = 0;
+        let q = [rootNode];
+        while (q.length) {
+            let node = q.shift();
+            if (node) {
+                if (node._depth > this._maxDepth) {
+                    this._maxDepth = node._depth;
+                }
+                let weightSoFar = 0;
+                for (let i = 0; i < node.children.length; i++) {
+                    let c = node.children[i];
+                    c._depth = node._depth + 1;
+                    c._weightStart = weightSoFar;
+                    weightSoFar += c.weight;
+                    q.push(c);
+                }
+            }
+        }
+
+        // _normalizedWidth: fraction node takes at its depth for entire tree
+        // _normalizedStart: fraction where node starts at its depth
+        // where fraction is [0, 1] corresponding to radians [zero, 2pi]
+        q = [rootNode];
+        while (q.length) {
+            let n = q.shift();
+            if (n) {
+                if (!n.p || n === rootNode) {
+                    n._normalizedWidth = 1;
+                    n._normalizedStart = 0;
+                } else {
+                    n._normalizedWidth = n.weight / n.p.weight * n.p._normalizedWidth;
+                    n._normalizedStart = n._weightStart / n.p.weight * n.p._normalizedWidth
+                        + n.p._normalizedStart;
+                }
+                for (let i = 0; i < n.children.length; i++) {
+                    q.push(n.children[i]);
+                }
+            }
+        }
     }
 
-    drawArc(node, isHighlight) {
+    _drawArc(node, isHighlight) {
         let depth = node._depth;
         let fractionStart = node._normalizedStart;
         let fractionWidth = node._normalizedWidth;
-        let color = Starburst.genColor(node);
+        let colorFn = this.genColor || Starburst.genColor;
+        let color = colorFn(node);
 
         if (isHighlight) {
-            color = 'deeppink';
+            color = this.highlightColor;
         }
 
         if (fractionWidth <= 0) { return; }
@@ -242,39 +276,13 @@ class Starburst {
         }
     }
 
-    highlightUpTo(node) {
+    _highlightUpTo(node) {
         while (node) {
-            this.drawArc(node, true);
+            this._drawArc(node, true);
             if (node === this._tree.root) {
                 node = undefined;
             } else {
                 node = node.p;
-            }
-        }
-    }
-
-    // TODO: abstract this to callback with node as input
-    static genColor(node) {
-        // weight += 2;
-        let weight = Math.pow(node._normalizedWidth, 0.3);
-        let centerColor = { r: 0, g: 1, b: 0 };
-        let outerColor = { r: 0.2, g: 0, b: 0 };
-        let xR = weight * centerColor.r + (1 - weight) * outerColor.r;
-        let xG = weight * centerColor.g + (1 - weight) * outerColor.g;
-        let xB = weight * centerColor.b + (1 - weight) * outerColor.b;
-        return `rgb(${Math.floor(xR * 255)},${Math.floor(xG * 255)},${Math.floor(xB * 255)})`;
-    }
-
-    render() {
-        this._ctx.clearRect(0, 0, this._w, this._h);
-        this._ctxH.clearRect(0, 0, this._w, this._h);
-
-        let q = [this._tree.root];
-        while (q.length) {
-            let node = q.shift();
-            this.drawArc(node);
-            for (let i = 0; i < node.children.length; i++) {
-                q.push(node.children[i]);
             }
         }
     }
