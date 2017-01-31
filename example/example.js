@@ -24,7 +24,7 @@ window.onload = () => {
     canvasH.style.setProperty('position', 'absolute');
 
     sv = new Starburst(canvas, canvasH, canvas.width, canvas.height);
-    sv.setColorFunction(() => 'rgb(255, 0, 0)');
+    // sv.setColorFunction(() => 'rgb(255, 0, 0)');
     sv.setData(setsGen.largeSets);
     sv.render();
 

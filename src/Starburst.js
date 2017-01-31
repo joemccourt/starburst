@@ -1,5 +1,92 @@
 const Tree = require('./Tree');
 
+// *** color utils *** //
+function hexToNormalizedColor(hexString) {
+    return {
+        r: parseInt(hexString.substring(0, 2), 16) / 255,
+        g: parseInt(hexString.substring(2, 4), 16) / 255,
+        b: parseInt(hexString.substring(4, 6), 16) / 255,
+    };
+}
+
+
+// normal blend mode.  B over A.  alpha [0, 1]
+function colorBlend(colorA, colorB, alpha) {
+    return {
+        r: alpha * colorB.r + (1 - alpha) * colorA.r,
+        g: alpha * colorB.g + (1 - alpha) * colorA.g,
+        b: alpha * colorB.b + (1 - alpha) * colorA.b,
+    };
+}
+
+// gradient is an array of {color, position}
+// Assumes positions are [0, 1] and in order in array
+// and gradient must be at least length 2
+// Simple linear, no fancy curving adjustments
+function getColorFromLinearGradient(gradient, position) {
+    // find adjacent stops
+    let stop1 = gradient[0];
+    let stop2 = gradient[1];
+    let i = 1;
+    while (stop2.position <= position && i < gradient.length) {
+        stop1 = gradient[i - 1];
+        stop2 = gradient[i];
+        i++;
+    }
+
+    let a = stop1.position;
+    let b = stop2.position;
+    let alpha = (position - a) / (b - a);
+
+    let colorA = hexToNormalizedColor(stop1.color);
+    let colorB = hexToNormalizedColor(stop2.color);
+
+    return colorBlend(colorA, colorB, alpha);
+}
+
+// const WARM_GRADIENT = [
+//     {
+//         color: 'ff4e50',
+//         position: 0,
+//     },
+//     {
+//         color: 'f9d423',
+//         position: 1,
+//     },
+// ];
+
+const RAINBOW_GRADIENT = [
+    {
+        color: 'ff0000',
+        position: 0,
+    },
+    {
+        color: 'ffff00',
+        position: 0.166,
+    },
+    {
+        color: '00ff00',
+        position: 0.333,
+    },
+    {
+        color: '00ffff',
+        position: 0.5,
+    },
+    {
+        color: '0000ff',
+        position: 0.677,
+    },
+    {
+        color: 'ff00ff',
+        position: 0.833,
+    },
+    {
+        color: 'ff0000',
+        position: 1,
+    },
+];
+// *** end of color utils *** //
+
 class Starburst {
     constructor(canvas, canvasH, w, h) {
         let ctx = canvas.getContext('2d');
@@ -68,13 +155,10 @@ class Starburst {
     }
 
     static genColor(node) {
-        let weight = Math.pow(node._normalizedWidth, 0.3);
-        let centerColor = { r: 0, g: 1, b: 0 };
-        let outerColor = { r: 0.2, g: 0, b: 0 };
-        let xR = weight * centerColor.r + (1 - weight) * outerColor.r;
-        let xG = weight * centerColor.g + (1 - weight) * outerColor.g;
-        let xB = weight * centerColor.b + (1 - weight) * outerColor.b;
-        return `rgb(${Math.floor(xR * 255)},${Math.floor(xG * 255)},${Math.floor(xB * 255)})`;
+        let weight = node._normalizedStart;
+        // let weight = node._weightStart / (node.p ? node.p.weight : 1);
+        let color = getColorFromLinearGradient(RAINBOW_GRADIENT, weight);
+        return `rgb(${Math.floor(color.r * 255)},${Math.floor(color.g * 255)},${Math.floor(color.b * 255)})`;
     }
 
     arcAt(x, y, onlyInside) {
