@@ -127,6 +127,7 @@ class Starburst {
             this._tree = {
                 root: data,
             };
+            Tree.linkParents(data);
         } else {
             return;
         }
@@ -196,7 +197,7 @@ class Starburst {
                     maxNode = node;
                     maxDepth = node._depth;
                 }
-                for (let i = 0; i < node.children.length; i++) {
+                for (let i = 0; node.children && i < node.children.length; i++) {
                     let c = node.children[i];
                     q.push(c);
                 }
@@ -231,7 +232,7 @@ class Starburst {
         while (q.length) {
             let node = q.shift();
             this._drawArc(node);
-            for (let i = 0; i < node.children.length; i++) {
+            for (let i = 0; node.children && i < node.children.length; i++) {
                 q.push(node.children[i]);
             }
         }
@@ -269,7 +270,7 @@ class Starburst {
                     this._maxDepth = node._depth;
                 }
                 let weightSoFar = 0;
-                for (let i = 0; i < node.children.length; i++) {
+                for (let i = 0; node.children && i < node.children.length; i++) {
                     let c = node.children[i];
                     c._depth = node._depth + 1;
                     c._weightStart = weightSoFar;
@@ -294,7 +295,7 @@ class Starburst {
                     n._normalizedStart = n._weightStart / n.p.weight * n.p._normalizedWidth
                         + n.p._normalizedStart;
                 }
-                for (let i = 0; i < n.children.length; i++) {
+                for (let i = 0; n.children && i < n.children.length; i++) {
                     q.push(n.children[i]);
                 }
             }

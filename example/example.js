@@ -1,4 +1,5 @@
 const setsGen = require('./setsGen');
+// const flare = require('./flare');
 const Starburst = require('../src/Starburst');
 
 let sv;
@@ -7,7 +8,7 @@ let nodeMove = (x, y) => {
     let n = sv.arcAt(x, y, false);
     let tip = document.getElementById('tip');
     if (n) {
-        tip.innerHTML = Starburst.nodeToString(n.value);
+        tip.innerHTML = Starburst.nodeToString(n.value || n.name); // hack for name
         tip.style.setProperty('top', `${y + 20}px`);
         tip.style.setProperty('left', `${x + 5}px`);
         sv.nodeHover(n);
@@ -26,6 +27,9 @@ window.onload = () => {
     sv = new Starburst(canvas, canvasH, canvas.width, canvas.height);
     // sv.setColorFunction(() => 'rgb(255, 0, 0)');
     sv.setData(setsGen.largeSets);
+    // sv.setData(setsGen.smallSets);
+    // sv.setData(setsGen.lynx);
+    // sv.setData(setsGen.constitution);
     sv.render();
 
     let tip = document.getElementById('tip');

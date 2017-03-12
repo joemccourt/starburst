@@ -48,7 +48,7 @@ class Tree {
 
         this.root = rootNode;
         this._buildTree(rootNode, this._sets, flatCount(this._sets));
-        this._linkParents(rootNode);
+        Tree.linkParents(rootNode);
     }
 
     // build a trie tree
@@ -106,11 +106,11 @@ class Tree {
         }
     }
 
-    _linkParents(node) {
-        for (let i = 0; i < node.children.length; i++) {
+    static linkParents(node) {
+        for (let i = 0; node.children && i < node.children.length; i++) {
             let c = node.children[i];
             c.p = node;
-            this._linkParents(c);
+            Tree.linkParents(c);
         }
     }
 }

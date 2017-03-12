@@ -51,4 +51,5 @@ module.exports = {
     constitution: sentenceSets(constitution),
     smallSets: letterGen(100, 100),
     largeSets: letterGen(500, 500),
+    xlargeSets: letterGen(10000, 150),
 };
