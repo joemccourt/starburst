@@ -1,5 +1,7 @@
 const LYNX = require('./lynxText');
 const constitution = require('./constitution');
+const flare = require('./flare');
+
 // const SIMPLE_SET = [['A'], ['B'], ['C'], ['D']];
 
 // dumb seedable RNG
@@ -52,4 +54,5 @@ module.exports = {
     smallSets: letterGen(100, 100),
     largeSets: letterGen(500, 500),
     xlargeSets: letterGen(10000, 150),
+    flare,
 };

@@ -44,16 +44,27 @@ function getColorFromLinearGradient(gradient, position) {
     return colorBlend(colorA, colorB, alpha);
 }
 
-// const WARM_GRADIENT = [
-//     {
-//         color: 'ff4e50',
-//         position: 0,
-//     },
-//     {
-//         color: 'f9d423',
-//         position: 1,
-//     },
-// ];
+const COOL_GRADIENT = [
+    {
+        color: '1058e0',
+        position: 0,
+    },
+    {
+        color: 'd8e5fc',
+        position: 1,
+    },
+];
+
+const WARM_GRADIENT = [
+    {
+        color: 'e09810',
+        position: 0,
+    },
+    {
+        color: 'fcefd8',
+        position: 1,
+    },
+];
 
 const RAINBOW_GRADIENT = [
     {
@@ -85,6 +96,13 @@ const RAINBOW_GRADIENT = [
         position: 1,
     },
 ];
+
+const gradient = {
+    rainbow: RAINBOW_GRADIENT,
+    warm: WARM_GRADIENT,
+    cool: COOL_GRADIENT,
+};
+
 // *** end of color utils *** //
 
 class Starburst {
@@ -97,7 +115,9 @@ class Starburst {
         this._canvasH = canvasH;
         this._lastPxRatio = 1;
         this.setSize(w, h);
-        this.highlightColor = 'yellow';
+        this.highlightColor = '#ff1493';
+        this.gradientName = 'rainbow';
+        this.offsetAngle = 0;
 
         // Create loop to rerender canvas on page scale change
         let watchCanvasScale = () => {
@@ -155,10 +175,10 @@ class Starburst {
         return array.join(joinChar);
     }
 
-    static genColor(node) {
+    genColorDefault(node) {
         let weight = node._normalizedStart;
         // let weight = node._weightStart / (node.p ? node.p.weight : 1);
-        let color = getColorFromLinearGradient(RAINBOW_GRADIENT, weight);
+        let color = getColorFromLinearGradient(gradient[this.gradientName], weight);
         return `rgb(${Math.floor(color.r * 255)},${Math.floor(color.g * 255)},${Math.floor(color.b * 255)})`;
     }
 
@@ -174,7 +194,7 @@ class Starburst {
         let dr = Math.sqrt(dx * dx + dy * dy);
         let depth = Math.floor(dr / r) - q[0]._depth;
 
-        let angle = Math.atan2(-dy, dx);
+        let angle = (Math.atan2(-dy, dx) + this.offsetAngle) % (2 * Math.PI);
         let fraction = angle / (Math.PI * 2);
         if (fraction < 0) {
             fraction += 1;
@@ -306,8 +326,8 @@ class Starburst {
         let depth = node._depth;
         let fractionStart = node._normalizedStart;
         let fractionWidth = node._normalizedWidth;
-        let colorFn = this.genColor || Starburst.genColor;
-        let color = colorFn(node);
+        let colorFn = this.genColor || (() => {});
+        let color = colorFn(node) || this.genColorDefault(node);
 
         if (isHighlight) {
             color = this.highlightColor;
@@ -318,8 +338,12 @@ class Starburst {
         this._arcRadius = r;
         let r1 = r * depth;
         let r2 = r1 + r;
-        let startAngle = (1 - fractionStart) * Math.PI * 2;
-        let endAngle = (startAngle - fractionWidth * Math.PI * 2) % (2 * Math.PI);
+        let startAngle = (1 - fractionStart) * Math.PI * 2 + this.offsetAngle;
+        let endAngle = startAngle - fractionWidth * Math.PI * 2;
+
+        startAngle %= 2 * Math.PI;
+        endAngle %= 2 * Math.PI;
+
         if (fractionWidth === 1) {
             startAngle = 0;
             endAngle = 2 * Math.PI;

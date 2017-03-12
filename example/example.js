@@ -1,17 +1,38 @@
-const setsGen = require('./setsGen');
-// const flare = require('./flare');
 const Starburst = require('../src/Starburst');
 
-let sv;
+const setsGen = require('./setsGen');
 
-let nodeMove = (x, y) => {
-    let n = sv.arcAt(x, y, false);
+let sb;
+
+const getURLDataName = (name, defaultName) => {
+    let paramsString = window.location.search;
+    let searchParams = new URLSearchParams(paramsString);
+    return searchParams.get(name) || defaultName;
+};
+
+function ExampleSB() {
+    const defaultSet = 'largeSets';
+    this.highlightColor = '#ff1493';
+    this.gradientName = 'rainbow';
+    this.offsetAngle = 0;
+    this.dataName = getURLDataName('data', defaultSet);
+    if (!setsGen[this.dataName]) {
+        this.dataName = defaultSet;
+    }
+    sb.setData(setsGen[this.dataName]);
+    sb.render();
+}
+
+ExampleSB.prototype.nodeMove = (x, y) => {
+    this.nodeHover = sb.arcAt(x, y, false);
     let tip = document.getElementById('tip');
-    if (n) {
-        tip.innerHTML = Starburst.nodeToString(n.value || n.name); // hack for name
+    if (this.nodeHover) {
+        // hack for name
+        tip.innerHTML = Starburst
+            .nodeToString(this.nodeHover.value || this.nodeHover.name);
         tip.style.setProperty('top', `${y + 20}px`);
         tip.style.setProperty('left', `${x + 5}px`);
-        sv.nodeHover(n);
+        sb.nodeHover(this.nodeHover);
     } else {
         tip.innerHTML = '';
     }
@@ -24,13 +45,42 @@ window.onload = () => {
     canvas.style.setProperty('position', 'absolute');
     canvasH.style.setProperty('position', 'absolute');
 
-    sv = new Starburst(canvas, canvasH, canvas.width, canvas.height);
-    // sv.setColorFunction(() => 'rgb(255, 0, 0)');
-    sv.setData(setsGen.largeSets);
-    // sv.setData(setsGen.smallSets);
-    // sv.setData(setsGen.lynx);
-    // sv.setData(setsGen.constitution);
-    sv.render();
+    sb = new Starburst(canvas, canvasH, canvas.width, canvas.height);
+    let example = new ExampleSB();
+
+    // dat gui controls for demos
+    let gui = new window.dat.GUI();
+
+    // data set selections
+    gui.add(example, 'dataName', ['smallSets', 'largeSets', 'xLargeSets', 'lynx', 'constitution', 'flare'])
+        .onChange((value) => {
+            sb.setData(setsGen[value]);
+            sb.render();
+        });
+
+    // highlight color
+    // todo add opacity control
+    gui.addColor(example, 'highlightColor')
+        .onChange((value) => {
+            sb.highlightColor = value;
+            sb.nodeHover(this.nodeHover);
+        });
+
+    // gradient selections
+    gui.add(example, 'gradientName', ['rainbow', 'warm', 'cool'])
+        .onChange((value) => {
+            sb.gradientName = value;
+            sb.render();
+        });
+
+    // offsetAngle
+    gui.add(example, 'offsetAngle', -Math.PI, Math.PI)
+        .onChange((value) => {
+            sb.offsetAngle = value;
+            sb.render();
+        });
+
+    // sb.setColorFunction(() => 'rgb(255, 0, 0)');
 
     let tip = document.getElementById('tip');
     tip.style.setProperty('position', 'absolute');
@@ -40,7 +90,7 @@ window.onload = () => {
         e = e || window.event;
         let x = e.pageX;
         let y = e.pageY;
-        nodeMove(x, y);
+        example.nodeMove(x, y);
     };
 
     document.onclick = (e) => {
@@ -48,7 +98,7 @@ window.onload = () => {
         let x = e.pageX;
         let y = e.pageY;
 
-        let n = sv.arcAt(x, y, true);
-        sv.nodeClick(n);
+        let n = sb.arcAt(x, y, true);
+        sb.nodeClick(n);
     };
 };
