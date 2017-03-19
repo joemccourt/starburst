@@ -13,7 +13,7 @@ Experimenting ways to visuzlize sets of sets and tree structured data
 [![image](https://cloud.githubusercontent.com/assets/823851/24077891/c19fb9d6-0c32-11e7-98d9-1f3cb7014576.png)](https://joemccourt.github.io/starburst/)
 
 ## API
-`/example` provides sample sample data to play with as well as a basic way of initializing and interacting with the Starburst plot.
+The `example` directory provides some sample data to play with as well as a basic way of initializing and interacting with the Starburst plot.
 
 ```
     // Initialization
