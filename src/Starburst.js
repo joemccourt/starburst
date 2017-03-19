@@ -129,6 +129,7 @@ class Starburst {
         this.setSize(w, h);
         this.highlightColor = '#ff1493';
         this.gradientName = 'cool';
+        this.colorAlgo = 'ByStart';
         this.offsetAngle = 0;
         this.zoom = 1;
         this.alphaH = 1;
@@ -197,14 +198,18 @@ class Starburst {
         return `rgb(${Math.floor(color.r * 255)},${Math.floor(color.g * 255)},${Math.floor(color.b * 255)})`;
     }
 
-    genColorDefault(node) {
+    genColorByStart(node) {
         let weight = node._normalizedStart;
         return this.valueToRGBString(weight);
-        // let weight = node._weightStart / (node.p ? node.p.weight : 1);
+    }
+
+    genColorRelative(node) {
+        let weight = node._weightStart / (node === this._tree.root ? 1 : node.p.weight);
+        return this.valueToRGBString(weight);
     }
 
     genColorDepth(node) {
-        let weight = node.depth / this._maxDepth;
+        let weight = node._depth / this._maxDepth;
         return this.valueToRGBString(weight);
     }
 
@@ -352,8 +357,10 @@ class Starburst {
         let depth = node._depth;
         let fractionStart = node._normalizedStart;
         let fractionWidth = node._normalizedWidth;
+
+        // FIXME: this is strange interface for setting color
         let colorFn = this.genColor || (() => {});
-        let color = colorFn(node) || this.genColorDefault(node);
+        let color = colorFn(node) || this[`genColor${this.colorAlgo}`](node);
 
         if (isHighlight) {
             color = this.highlightColor;

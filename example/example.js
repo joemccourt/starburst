@@ -20,6 +20,7 @@ function ExampleSB() {
     const defaultSet = 'webpack';
     this.highlightColor = '#ff1493';
     this.gradientName = 'cool';
+    this.colorAlgo = 'ByStart';
     this.offsetAngle = 0;
     this.zoom = 1;
     this.alphaH = 1;
@@ -34,15 +35,28 @@ function ExampleSB() {
 ExampleSB.prototype.nodeMove = (x, y) => {
     this.nodeHover = sb.arcAt(x, y, false);
     let tip = document.getElementById('tip');
+    let canvasH = document.getElementById('starburstVizH');
+    let isRoot = false;
     if (this.nodeHover) {
         // hack for name
+        isRoot = !this.nodeHover.p;
         let name = Starburst.nodeToString(this.nodeHover.name || this.nodeHover.value);
         tip.innerHTML = `${name} - ${this.nodeHover.weight}`;
+
+        if (this.nodeHover === sb._tree.root && !isRoot) {
+            tip.innerHTML += ' - click to go up one level';
+        }
+
         tip.style.setProperty('top', `${y + 20}px`);
         tip.style.setProperty('left', `${x + 5}px`);
         sb.nodeHover(this.nodeHover);
     } else {
         tip.innerHTML = '';
+    }
+    if (!isRoot && sb.arcAt(x, y, true)) {
+        canvasH.style.setProperty('cursor', 'pointer');
+    } else {
+        canvasH.style.setProperty('cursor', 'default');
     }
 };
 
@@ -70,6 +84,13 @@ window.onload = () => {
     gui.add(example, 'gradientName', ['rainbow', 'warm', 'cool', 'gray'])
         .onChange((value) => {
             sb.gradientName = value;
+            sb.render();
+        });
+
+    // color algo
+    gui.add(example, 'colorAlgo', ['ByStart', 'Relative', 'Depth'])
+        .onChange((value) => {
+            sb.colorAlgo = value;
             sb.render();
         });
 
@@ -106,6 +127,7 @@ window.onload = () => {
     tip.style.setProperty('position', 'absolute');
     tip.style.setProperty('padding', '0.15em');
     tip.style.setProperty('background', 'white');
+    tip.style.setProperty('user-select', 'none');
     document.body.style.setProperty('margin', '0px');
     document.onmousemove = (e) => {
         e = e || window.event;
