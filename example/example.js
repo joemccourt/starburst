@@ -1,6 +1,12 @@
 const Starburst = require('../src/Starburst');
 
 const setsGen = require('./setsGen');
+const demoStats = require('./webpackDemo.json');
+const webpackStatsToTree = require('./webpackStatsToTree.js');
+const flare = require('./flare');
+
+setsGen.webpack = webpackStatsToTree(demoStats);
+setsGen.flare = flare;
 
 let sb;
 
@@ -11,10 +17,12 @@ const getURLDataName = (name, defaultName) => {
 };
 
 function ExampleSB() {
-    const defaultSet = 'largeSets';
+    const defaultSet = 'webpack';
     this.highlightColor = '#ff1493';
-    this.gradientName = 'rainbow';
+    this.gradientName = 'cool';
     this.offsetAngle = 0;
+    this.zoom = 1;
+    this.alphaH = 1;
     this.dataName = getURLDataName('data', defaultSet);
     if (!setsGen[this.dataName]) {
         this.dataName = defaultSet;
@@ -28,8 +36,8 @@ ExampleSB.prototype.nodeMove = (x, y) => {
     let tip = document.getElementById('tip');
     if (this.nodeHover) {
         // hack for name
-        tip.innerHTML = Starburst
-            .nodeToString(this.nodeHover.value || this.nodeHover.name);
+        let name = Starburst.nodeToString(this.nodeHover.name || this.nodeHover.value);
+        tip.innerHTML = `${name} - ${this.nodeHover.weight}`;
         tip.style.setProperty('top', `${y + 20}px`);
         tip.style.setProperty('left', `${x + 5}px`);
         sb.nodeHover(this.nodeHover);
@@ -52,9 +60,16 @@ window.onload = () => {
     let gui = new window.dat.GUI();
 
     // data set selections
-    gui.add(example, 'dataName', ['smallSets', 'largeSets', 'xLargeSets', 'lynx', 'constitution', 'flare'])
+    gui.add(example, 'dataName', ['smallSets', 'largeSets', 'xlargeSets', 'webpack', 'lynx', 'constitution', 'flare'])
         .onChange((value) => {
             sb.setData(setsGen[value]);
+            sb.render();
+        });
+
+    // gradient selections
+    gui.add(example, 'gradientName', ['rainbow', 'warm', 'cool', 'gray'])
+        .onChange((value) => {
+            sb.gradientName = value;
             sb.render();
         });
 
@@ -66,11 +81,11 @@ window.onload = () => {
             sb.nodeHover(this.nodeHover);
         });
 
-    // gradient selections
-    gui.add(example, 'gradientName', ['rainbow', 'warm', 'cool'])
+    // highlight alpha
+    gui.add(example, 'alphaH', 0, 1)
         .onChange((value) => {
-            sb.gradientName = value;
-            sb.render();
+            sb.alphaH = value;
+            sb.nodeHover(this.nodeHover);
         });
 
     // offsetAngle
@@ -80,10 +95,16 @@ window.onload = () => {
             sb.render();
         });
 
-    // sb.setColorFunction(() => 'rgb(255, 0, 0)');
+    // zoom
+    gui.add(example, 'zoom', 0.1, 3)
+        .onChange((value) => {
+            sb.zoom = value;
+            sb.render();
+        });
 
     let tip = document.getElementById('tip');
     tip.style.setProperty('position', 'absolute');
+    tip.style.setProperty('padding', '0.15em');
     tip.style.setProperty('background', 'white');
     document.body.style.setProperty('margin', '0px');
     document.onmousemove = (e) => {

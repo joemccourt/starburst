@@ -41,6 +41,7 @@ class Tree {
 
         let rootNode = {
             value: new Set(),
+            name: 'total',
             weight: this._sets.size,
             isLeaf: false, // not always true
             children: [],

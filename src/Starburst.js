@@ -66,6 +66,17 @@ const WARM_GRADIENT = [
     },
 ];
 
+const GRAY_GRADIENT = [
+    {
+        color: '777777',
+        position: 0,
+    },
+    {
+        color: 'ffffff',
+        position: 1,
+    },
+];
+
 const RAINBOW_GRADIENT = [
     {
         color: 'ff0000',
@@ -101,6 +112,7 @@ const gradient = {
     rainbow: RAINBOW_GRADIENT,
     warm: WARM_GRADIENT,
     cool: COOL_GRADIENT,
+    gray: GRAY_GRADIENT,
 };
 
 // *** end of color utils *** //
@@ -116,8 +128,10 @@ class Starburst {
         this._lastPxRatio = 1;
         this.setSize(w, h);
         this.highlightColor = '#ff1493';
-        this.gradientName = 'rainbow';
+        this.gradientName = 'cool';
         this.offsetAngle = 0;
+        this.zoom = 1;
+        this.alphaH = 1;
 
         // Create loop to rerender canvas on page scale change
         let watchCanvasScale = () => {
@@ -167,6 +181,9 @@ class Starburst {
 
     // How to stringify node
     static nodeToString(set, maxLength, joinChar = ',') {
+        if (!(set instanceof Set)) {
+            return set;
+        }
         let l = maxLength || set.length;
         let array = [...set].slice(0, l);
         if (set.size > l) {
@@ -175,11 +192,20 @@ class Starburst {
         return array.join(joinChar);
     }
 
+    valueToRGBString(v) {
+        let color = getColorFromLinearGradient(gradient[this.gradientName], v);
+        return `rgb(${Math.floor(color.r * 255)},${Math.floor(color.g * 255)},${Math.floor(color.b * 255)})`;
+    }
+
     genColorDefault(node) {
         let weight = node._normalizedStart;
+        return this.valueToRGBString(weight);
         // let weight = node._weightStart / (node.p ? node.p.weight : 1);
-        let color = getColorFromLinearGradient(gradient[this.gradientName], weight);
-        return `rgb(${Math.floor(color.r * 255)},${Math.floor(color.g * 255)},${Math.floor(color.b * 255)})`;
+    }
+
+    genColorDepth(node) {
+        let weight = node.depth / this._maxDepth;
+        return this.valueToRGBString(weight);
     }
 
     arcAt(x, y, onlyInside) {
@@ -334,7 +360,7 @@ class Starburst {
         }
 
         if (fractionWidth <= 0) { return; }
-        let r = Math.min(this._w, this._h) / 2 / (this._maxDepth + 2);
+        let r = Math.min(this._w, this._h) / 2 / (this._maxDepth + 2) * this.zoom;
         this._arcRadius = r;
         let r1 = r * depth;
         let r2 = r1 + r;
@@ -370,6 +396,7 @@ class Starburst {
         // let y4 = y0 + r2 * saStart;
 
         let ctx = isHighlight ? this._ctxH : this._ctx;
+        ctx.globalAlpha = isHighlight ? this.alphaH : 1;
         ctx.fillStyle = color;
         ctx.strokeStyle = 'black';
 
